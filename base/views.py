@@ -9,14 +9,7 @@ from django.contrib.auth.forms import UserCreationForm
 from .models import Room, Topic, Message
 from .forms import RoomForm
 
-
-
-#rooms = [
-#    {'id':1, 'name':'Lets learn python!'},
-#    {'id':2, 'name':'Design with me'},
-#    {'id':3, 'name':'Frontend developers'},
-#]
-
+#===============================================================================================================================
 def loginPage(request):
     page = 'login'
 
@@ -44,11 +37,13 @@ def loginPage(request):
     context = {'page': page}
     return render(request, 'base/login_register.html', context)
 
+#================================================================================================================================
 
 def logoutUser(request):
     logout(request)
     return redirect('home')
 
+#===================================================================================================================================
 def registerPage(request):
     form = UserCreationForm()
 
@@ -66,7 +61,7 @@ def registerPage(request):
 
     return render(request, 'base/login_register.html', {'form':form})
 
-
+#=======================================================================================================================================
 def home(request):
     q = request.GET.get('q') if request.GET.get('q') != None else ''    # if topic is not selected then set to empty string
 
@@ -78,15 +73,22 @@ def home(request):
     topics = Topic.objects.all()
     room_count = rooms.count()
 
-    context = {'rooms': rooms, 'topics':topics, 'room_count': room_count}
+    room_messages = Message.objects.filter(
+        Q(room__topic__name__icontains=q))      #seemed to work WO topic
+
+    context = {'rooms': rooms,
+               'topics':topics,
+               'room_count': room_count,
+               'room_messages':room_messages}
     return render(request, 'base/home.html', context)
 
+#==============================================================================================================================================
 def room(request, pk):
     room = Room.objects.get(id=pk)
 
     participants = room.participants.all()
 
-    room_messages = room.message_set.all().order_by('-created')
+    room_messages = room.message_set.all()
     if request.method == 'POST':
         message = Message.objects.create(
         user = request.user,
@@ -102,6 +104,22 @@ def room(request, pk):
 
     return render(request, 'base/room.html', context)
 
+#==================================================================================================================
+def userProfile(request, pk):
+    user = User.objects.get(id=pk)
+    rooms = user.room_set.all()
+    room_messages = user.message_set.all()
+    topics = Topic.objects.all()
+    context = {'user':user,
+               'rooms':rooms,
+               'room_messages':room_messages,
+               'topics':topics}
+    return render(request, 'base/profile.html', context)
+
+
+
+
+#=============================================================================================================================================
 @login_required(login_url='login')
 def createRoom(request):
     form = RoomForm()
@@ -114,6 +132,7 @@ def createRoom(request):
     context = {'form': form}
     return render(request, 'base/room_form.html', context)
 
+#====================================================================================================================================================
 @login_required(login_url='login')
 def updateRoom(request, pk):                # pass in pk (which item are we updating?
     room = Room.objects.get(id=pk)          # get room values as object
@@ -131,6 +150,7 @@ def updateRoom(request, pk):                # pass in pk (which item are we upda
     context = {'form': form}
     return render(request, 'base/room_form.html', context)
 
+#================================================================================================================================================
 @login_required(login_url='login')
 def deleteRoom(request, pk):
     room = Room.objects.get(id=pk)
@@ -144,6 +164,7 @@ def deleteRoom(request, pk):
     return render(request, 'base/delete.html', {'obj':room})
 
 
+#=====================================================================================================================================================
 @login_required(login_url='login')
 def deleteMessage(request, pk):
     message = Message.objects.get(id=pk)
@@ -156,7 +177,7 @@ def deleteMessage(request, pk):
 
     return render(request, 'base/delete.html', {'obj':message})
 
-
+# ===========================================================================================================================================================
 
 
 
