@@ -78,6 +78,7 @@ def home(request):
 
     context = {'rooms': rooms,
                'topics':topics,
+
                'room_count': room_count,
                'room_messages':room_messages}
     return render(request, 'base/home.html', context)
@@ -123,15 +124,23 @@ def userProfile(request, pk):
 @login_required(login_url='login')
 def createRoom(request):
     form = RoomForm()
+    topics = Topic.objects.all()
     if request.method == 'POST':
-        form = RoomForm(request.POST)
-        if form.is_valid():
-            room = form.save(commit=False)  #allow for ammendments befrore save
-            room.host = request.user        #adds the host to our form before saving
-            room.save()
-            return redirect('home')
+        topic_name = request.POST.get('topic')
+        topic, created = Topic.objects.get_or_create(name=topic_name) #creates the object if it doesn't already exist.
 
-    context = {'form': form}
+        Room.objects.create(
+            host = request.user,
+            topic = topic,
+            name = request.POST.get('name'),
+            description = request.POST.get('description')
+        )
+
+        return redirect('home')
+
+    context = {'form': form,
+               'topics':topics,
+               'room':room}
     return render(request, 'base/room_form.html', context)
 
 #====================================================================================================================================================
@@ -139,17 +148,23 @@ def createRoom(request):
 def updateRoom(request, pk):                # pass in pk (which item are we updating?
     room = Room.objects.get(id=pk)          # get room values as object
     form = RoomForm(instance=room)          # form will be prefilled with room object values for editing
-
+    topics = Topic.objects.all()
     if request.user != room.host:
         return HttpResponse("You're not allowed here")
 
     if request.method == 'POST':
-        form = RoomForm(request.POST, instance=room)
-        if form.is_valid():
-            form.save()
-            return redirect('home')
+        topic_name = request.POST.get('topic')
+        topic, created = Topic.objects.get_or_create(name=topic_name)  # creates the object if it doesn't already exist.
+        room.name = request.POST.get('name')
+        room.topic = topic
+        room.description = request.POST.get('description')
+        room.save()
 
-    context = {'form': form}
+        return redirect('home')
+
+    context = {'form': form,
+               'topics':topics,
+               'room':room}
     return render(request, 'base/room_form.html', context)
 
 #================================================================================================================================================
